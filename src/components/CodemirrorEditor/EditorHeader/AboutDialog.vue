@@ -15,9 +15,9 @@ function onUpdate(val: boolean) {
 }
 
 const links = [
-  { label: `GitHub 仓库`, url: `https://github.com/doocs/md` },
-  { label: `Gitee 仓库`, url: `https://gitee.com/doocs/md` },
-  { label: `GitCode 仓库`, url: `https://gitcode.com/doocs/md` },
+  { label: `ChatGPT国内版`, url: `https://chat.tvvai.com` },
+  { label: `Ai工具站`, url: `https://ai.tvvai.com` },
+  { label: `Ai学习联盟`, url: `https://sd.tvvai.com` },
 ]
 
 function onRedirect(url: string) {
@@ -29,15 +29,15 @@ function onRedirect(url: string) {
   <Dialog :open="props.visible" @update:open="onUpdate">
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>关于</DialogTitle>
+        <DialogTitle>Ai</DialogTitle>
       </DialogHeader>
       <div class="text-center">
         <h3>一款高度简洁的微信 Markdown 编辑器</h3>
-        <p>扫码关注公众号 Doocs，原创技术内容第一时间推送！</p>
+        <p>扫码关注公众号 青年设计联盟，让Ai应用于工作，成为生产力！</p>
         <img
           class="mx-auto my-5"
-          src="https://cdn-doocs.oss-cn-shenzhen.aliyuncs.com/gh/doocs/md/images/1648303220922-7e14aefa-816e-44c1-8604-ade709ca1c69.png"
-          alt="Doocs Markdown 编辑器"
+          src="https://img.tvvai.com/qnsjlm.jpg"
+          alt="青年设计联盟"
           style="width: 40%"
         >
       </div>
