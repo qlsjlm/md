@@ -5,11 +5,11 @@ const aboutDialogVisible = ref(false)
 <template>
   <MenubarMenu>
     <MenubarTrigger>
-      帮助
+      Ai
     </MenubarTrigger>
     <MenubarContent align="start">
       <MenubarCheckboxItem @click="aboutDialogVisible = true">
-        <span>关于</span>
+        <span>使用Ai</span>
       </MenubarCheckboxItem>
     </MenubarContent>
   </MenubarMenu>
