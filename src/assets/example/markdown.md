@@ -169,26 +169,28 @@ $$
 ### 2. 插入图片
 > [!WARNING]
 > 但请注意照片必须要托管在对象存储才可以复制到公众号。
+
 <section style="display: flex; justify-content: center; align-items: flex-start;">
   <section style="margin-right: 10px;">
     <img
-      src="[https://tvvai-1251410656.cos.ap-chengdu.myqcloud.com/docsmarkdown%2Fa.png](https://github.com/user-attachments/assets/584a96e4-0961-4aba-b87b-9f8b657ba60b)"
+      src="https://tvvai-1251410656.cos.ap-chengdu.myqcloud.com/docsmarkdown%2Fa.png"
       style="width: 100px; height: auto;"
     />
   </section>
   <section style="margin-right: 10px;">
     <img
-      src="[https://tvvai-1251410656.cos.ap-chengdu.myqcloud.com/docsmarkdown%2Fb.png](https://github.com/user-attachments/assets/584a96e4-0961-4aba-b87b-9f8b657ba60b)"
+      src="https://tvvai-1251410656.cos.ap-chengdu.myqcloud.com/docsmarkdown%2Fb.png"
       style="width: 100px; height: auto;"
     />
   </section>
   <section>
     <img
-      src="[https://tvvai-1251410656.cos.ap-chengdu.myqcloud.com/docsmarkdown%2Fa.png](https://github.com/user-attachments/assets/584a96e4-0961-4aba-b87b-9f8b657ba60b)"
+      src="https://tvvai-1251410656.cos.ap-chengdu.myqcloud.com/docsmarkdown%2Fa.png"
       style="width: 100px; height: auto;"
     />
   </section>
 </section>
+
 
 ### 3. Mermaid 流程图：可视化流程
 
