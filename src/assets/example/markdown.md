@@ -166,8 +166,31 @@ d_{x + 1, y + 1} &\leftarrow d_{x + 1, y + 1} + 1
 $$
 
 这是展示复杂数学表达的利器！
+### 2. 插入图片
+> [!WARNING]
+> 但请注意照片必须要托管在对象存储才可以复制到公众号。
+<section style="display: flex; justify-content: center; align-items: flex-start;">
+  <section style="margin-right: 10px;">
+    <img
+      src="[https://tvvai-1251410656.cos.ap-chengdu.myqcloud.com/docsmarkdown%2Fa.png](https://github.com/user-attachments/assets/584a96e4-0961-4aba-b87b-9f8b657ba60b)"
+      style="width: 100px; height: auto;"
+    />
+  </section>
+  <section style="margin-right: 10px;">
+    <img
+      src="[https://tvvai-1251410656.cos.ap-chengdu.myqcloud.com/docsmarkdown%2Fb.png](https://github.com/user-attachments/assets/584a96e4-0961-4aba-b87b-9f8b657ba60b)"
+      style="width: 100px; height: auto;"
+    />
+  </section>
+  <section>
+    <img
+      src="[https://tvvai-1251410656.cos.ap-chengdu.myqcloud.com/docsmarkdown%2Fa.png](https://github.com/user-attachments/assets/584a96e4-0961-4aba-b87b-9f8b657ba60b)"
+      style="width: 100px; height: auto;"
+    />
+  </section>
+</section>
 
-### 2. Mermaid 流程图：可视化流程
+### 3. Mermaid 流程图：可视化流程
 
 Mermaid 是强大的可视化工具，可以在 Markdown 中创建流程图、时序图等。
 
