@@ -173,19 +173,19 @@ $$
 <section style="display: flex; justify-content: center; align-items: flex-start;">
   <section style="margin-right: 10px;">
     <img
-      src="https://tvvai-1251410656.cos.ap-chengdu.myqcloud.com/docsmarkdown%2Fa.png"
+      src="https://tvvai-1251410656.cos.ap-chengdu.myqcloud.com/docsmarkdown/qnsjlm.jpg"
       style="width: 100px; height: auto;"
     />
   </section>
   <section style="margin-right: 10px;">
     <img
-      src="https://tvvai-1251410656.cos.ap-chengdu.myqcloud.com/docsmarkdown%2Fb.png"
+      src="https://tvvai-1251410656.cos.ap-chengdu.myqcloud.com/docsmarkdown/qnsjlm.jpg"
       style="width: 100px; height: auto;"
     />
   </section>
   <section>
     <img
-      src="https://tvvai-1251410656.cos.ap-chengdu.myqcloud.com/docsmarkdown%2Fa.png"
+      src="https://tvvai-1251410656.cos.ap-chengdu.myqcloud.com/docsmarkdown/qnsjlm.jpg"
       style="width: 100px; height: auto;"
     />
   </section>
