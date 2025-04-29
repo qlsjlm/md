@@ -20,6 +20,7 @@ import {
   downloadMD,
   exportHTML,
   formatDoc,
+  sanitizeTitle,
 } from '@/utils'
 
 import { initRenderer } from '@/utils/renderer'
@@ -516,20 +517,20 @@ export const useStore = defineStore(`store`, () => {
 
   // 导出编辑器内容为 HTML，并且下载到本地
   const exportEditorContent2HTML = () => {
-    exportHTML(primaryColor.value)
+    exportHTML(primaryColor.value, posts.value[currentPostIndex.value].title)
     document.querySelector(`#output`)!.innerHTML = output.value
   }
 
   // 下载卡片
-  const dowloadAsCardImage = (filename = `download.png`) => {
+  const dowloadAsCardImage = () => {
     const el = document.querySelector(` #output-wrapper>.preview`)! as HTMLElement
     toPng(el, {
       backgroundColor: isDark.value ? `` : `#fff`,
-      skipFonts: true, // 如果加载字体控制台报错，打开这段的注释
-      pixelRatio: Math.max(window.devicePixelRatio || 1, 2), // 添加 || 1 以防 devicePixelRatio 不可用
+      skipFonts: true,
+      pixelRatio: Math.max(window.devicePixelRatio || 1, 2),
     }).then((url) => {
       const a = document.createElement(`a`)
-      a.download = filename
+      a.download = sanitizeTitle(posts.value[currentPostIndex.value].title)
       document.body.appendChild(a)
       a.href = url
       a.click()
@@ -539,7 +540,7 @@ export const useStore = defineStore(`store`, () => {
 
   // 导出编辑器内容到本地
   const exportEditorContent2MD = () => {
-    downloadMD(editor.value!.getValue())
+    downloadMD(editor.value!.getValue(), posts.value[currentPostIndex.value].title)
   }
 
   // 导入默认文档
