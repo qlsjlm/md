@@ -9,7 +9,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { DEFAULT_SERVICE_ENDPOINT, type ServiceOption, serviceOptions } from '@/config/ai-services'
+import { Info } from 'lucide-vue-next'
 
 import { onMounted, reactive, ref, watch } from 'vue'
 
@@ -117,7 +125,6 @@ async function testConnection() {
   const headers: Record<string, string> = {
     'Content-Type': `application/json`,
   }
-
   if (config.apiKey && config.type !== `default`) {
     headers.Authorization = `Bearer ${config.apiKey}`
   }
@@ -130,18 +137,15 @@ async function testConnection() {
 
     const payload = {
       model: config.model || (currentService().models[0] || ``),
-      messages: [{ role: `user`, content: `hello` }],
-      temperature: config.temperature,
-      max_tokens: config.maxToken,
+      messages: [{ role: `user`, content: `ping` }],
+      temperature: 0,
+      max_tokens: 1,
       stream: false,
     }
 
     const res = await window.fetch(url.toString(), {
       method: `POST`,
-      headers: {
-        'Authorization': `Bearer ${config.apiKey}`,
-        'Content-Type': `application/json`,
-      },
+      headers,
       body: JSON.stringify(payload),
     })
 
@@ -152,7 +156,7 @@ async function testConnection() {
     else {
       const text = await res.text()
 
-      // 新增判断：如果是模型未开通
+      // 如果是模型未开通
       try {
         const json = JSON.parse(text)
         const errorCode = json?.error?.code || ``
@@ -160,10 +164,12 @@ async function testConnection() {
 
         if (
           res.status === 404
-          && (errorCode === `ModelNotOpen` || errorMessage.includes(`not activated`) || errorMessage.includes(`未开通`))
+          && (errorCode === `ModelNotOpen`
+            || errorMessage.includes(`not activated`)
+            || errorMessage.includes(`未开通`))
         ) {
           testResult.value = `⚠️ 测试成功，但当前模型未开通：${config.model}`
-          saveConfig(false) // 保存配置，因为接口是正常的
+          saveConfig(false)
           return
         }
       }
@@ -186,7 +192,7 @@ async function testConnection() {
 
 <template>
   <div class="space-y-4 text-sm">
-    <div class="text-gray-800 font-medium">
+    <div class="font-medium">
       AI 配置
     </div>
 
@@ -261,7 +267,19 @@ async function testConnection() {
 
     <!-- 温度 temperature -->
     <div>
-      <Label class="mb-1 block text-sm font-medium">温度</Label>
+      <Label class="mb-1 flex items-center gap-1 text-sm font-medium">
+        温度
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <Info class="text-gray-500" :size="16" />
+            </TooltipTrigger>
+            <TooltipContent>
+              <div>控制输出的随机性：较低的值使输出更确定，较高的值使其更随机。</div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </Label>
       <Input
         v-model.number="config.temperature"
         type="number"

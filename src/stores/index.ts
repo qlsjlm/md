@@ -11,6 +11,7 @@ import {
   shiftKey,
   themeMap,
   themeOptions,
+  widthOptions,
 } from '@/config'
 import {
   addPrefix,
@@ -22,12 +23,28 @@ import {
   formatDoc,
   sanitizeTitle,
 } from '@/utils'
-
 import { initRenderer } from '@/utils/renderer'
+
 import CodeMirror from 'codemirror'
 import DOMPurify from 'dompurify'
 import { toPng } from 'html-to-image'
 import { marked } from 'marked'
+import { v4 as uuid } from 'uuid'
+
+/**********************************
+ * Post 结构接口
+ *********************************/
+interface Post {
+  id: string
+  title: string
+  content: string
+  history: {
+    datetime: string
+    content: string
+  }[]
+  createDatetime: Date
+  updateDatetime: Date
+}
 
 export const useStore = defineStore(`store`, () => {
   // 是否开启深色模式
@@ -57,10 +74,7 @@ export const useStore = defineStore(`store`, () => {
   const output = ref(``)
 
   // 文本字体
-  const theme = useStorage<keyof typeof themeMap>(
-    addPrefix(`theme`),
-    themeOptions[0].value,
-  )
+  const theme = useStorage<keyof typeof themeMap>(addPrefix(`theme`), themeOptions[0].value)
   // 文本字体
   const fontFamily = useStorage(`fonts`, fontFamilyOptions[0].value)
   // 文本大小
@@ -68,91 +82,138 @@ export const useStore = defineStore(`store`, () => {
   // 主色
   const primaryColor = useStorage(`color`, colorOptions[0].value)
   // 代码块主题
-  const codeBlockTheme = useStorage(
-    `codeBlockTheme`,
-    codeBlockThemeOptions[23].value,
-  )
+  const codeBlockTheme = useStorage(`codeBlockTheme`, codeBlockThemeOptions[23].value)
   // 图注格式
   const legend = useStorage(`legend`, legendOptions[3].value)
 
-  const fontSizeNumber = computed(() =>
-    Number(fontSize.value.replace(`px`, ``)),
-  )
+  // 预览宽度
+  const previewWidth = useStorage(`previewWidth`, widthOptions[0].value)
 
-  // 内容编辑器编辑器
+  const fontSizeNumber = computed(() => Number(fontSize.value.replace(`px`, ``)))
+
+  // 内容编辑器
   const editor = ref<CodeMirror.EditorFromTextArea | null>(null)
-  // 编辑区域内容
-  // 预备弃用
+  // 预备弃用的旧字段
   const editorContent = useStorage(`__editor_content`, DEFAULT_CONTENT)
 
-  const isOpenRightSlider = useStorage(
-    addPrefix(`is_open_right_slider`),
-    false,
-  )
-
+  const isOpenRightSlider = useStorage(addPrefix(`is_open_right_slider`), false)
   const isOpenPostSlider = useStorage(addPrefix(`is_open_post_slider`), false)
-  // 内容列表
-  const posts = useStorage(addPrefix(`posts`), [
+
+  /*******************************
+   * 内容列表 posts：默认就带 id
+   ******************************/
+  const posts = useStorage<Post[]>(addPrefix(`posts`), [
     {
+      id: uuid(),
       title: `内容1`,
       content: DEFAULT_CONTENT,
       history: [
-        {
-          datetime: new Date().toLocaleString(`zh-cn`),
-          content: DEFAULT_CONTENT,
-        },
+        { datetime: new Date().toLocaleString(`zh-cn`), content: DEFAULT_CONTENT },
       ],
       createDatetime: new Date(),
       updateDatetime: new Date(),
     },
   ])
 
-  // 有新的字段变化，更新兼容
+  // currentPostId 先存空串
+  const currentPostId = useStorage(addPrefix(`current_post_id`), ``)
+
+  // 是否为移动端
+  const isMobile = useStorage(`isMobile`, false)
+
+  function handleResize() {
+    isMobile.value = window.innerWidth <= 768
+  }
+
+  onMounted(() => {
+    handleResize()
+    window.addEventListener(`resize`, handleResize)
+  })
+
+  onBeforeUnmount(() => {
+    window.removeEventListener(`resize`, handleResize)
+  })
+
+  // 在补齐 id 后，若 currentPostId 无效 ➜ 自动指向第一篇
   onBeforeMount(() => {
     posts.value = posts.value.map((post, index) => {
       const now = Date.now()
-      post.createDatetime ??= new Date(now + index)
-      post.updateDatetime ??= new Date(now + index)
-      return post
+      return {
+        ...post,
+        id: post.id ?? uuid(),
+        createDatetime: post.createDatetime ?? new Date(now + index),
+        updateDatetime: post.updateDatetime ?? new Date(now + index),
+      }
     })
+
+    // 兼容：如果本地没有 currentPostId，或指向的文章已不存在
+    if (!currentPostId.value || !posts.value.some(p => p.id === currentPostId.value)) {
+      currentPostId.value = posts.value[0]?.id ?? ``
+    }
   })
 
-  // 当前内容
-  const currentPostIndex = useStorage(addPrefix(`current_post_index`), 0)
+  /** 根据 id 找索引 */
+  const findIndexById = (id: string) => posts.value.findIndex(p => p.id === id)
 
+  /** computed: 让旧代码还能用 index，但底层映射 id */
+  const currentPostIndex = computed<number>({
+    get: () => findIndexById(currentPostId.value),
+    set: (idx) => {
+      if (idx >= 0 && idx < posts.value.length)
+        currentPostId.value = posts.value[idx].id
+    },
+  })
+
+  /** 获取 Post */
+  const getPostById = (id: string) => posts.value.find(p => p.id === id)
+
+  /********************************
+   * CRUD
+   ********************************/
   const addPost = (title: string) => {
-    currentPostIndex.value
-      = posts.value.push({
-        title,
-        content: `# ${title}`,
-        history: [
-          {
-            datetime: new Date().toLocaleString(`zh-cn`),
-            content: `# ${title}`,
-          },
-        ],
-        createDatetime: new Date(),
-        updateDatetime: new Date(),
-      }) - 1
+    const newPost: Post = {
+      id: uuid(),
+      title,
+      content: `# ${title}`,
+      history: [
+        { datetime: new Date().toLocaleString(`zh-cn`), content: `# ${title}` },
+      ],
+      createDatetime: new Date(),
+      updateDatetime: new Date(),
+    }
+    posts.value.push(newPost)
+    currentPostId.value = newPost.id
   }
 
-  const renamePost = (index: number, title: string) => {
-    posts.value[index].title = title
+  const renamePost = (id: string, title: string) => {
+    const post = getPostById(id)
+    if (post)
+      post.title = title
   }
 
-  const delPost = (index: number) => {
-    posts.value.splice(index, 1)
-    currentPostIndex.value = Math.min(index, posts.value.length - 1)
+  const delPost = (id: string) => {
+    const idx = findIndexById(id)
+    if (idx === -1)
+      return
+    posts.value.splice(idx, 1)
+    currentPostId.value = posts.value[Math.min(idx, posts.value.length - 1)]?.id ?? ``
   }
 
-  watch(currentPostIndex, () => {
-    toRaw(editor.value!).setValue(posts.value[currentPostIndex.value].content)
+  /********************************
+   * 同步编辑器内容
+   ********************************/
+  watch(currentPostId, () => {
+    const post = getPostById(currentPostId.value)
+    if (post)
+      toRaw(editor.value!).setValue(post.content)
   })
 
   onMounted(() => {
     // 迁移阶段，兼容之前的方案
     if (editorContent.value !== DEFAULT_CONTENT) {
-      posts.value[currentPostIndex.value].content = editorContent.value
+      const post = getPostById(currentPostId.value)
+      if (post)
+        post.content = editorContent.value
       editorContent.value = DEFAULT_CONTENT
     }
   })
@@ -495,6 +556,10 @@ export const useStore = defineStore(`store`, () => {
     codeBlockTheme.value = newTheme
   })
 
+  const previewWidthChanged = withAfterRefresh((newWidth: string) => {
+    previewWidth.value = newWidth
+  })
+
   const legendChanged = withAfterRefresh((newVal) => {
     legend.value = newVal
   })
@@ -523,11 +588,14 @@ export const useStore = defineStore(`store`, () => {
 
   // 下载卡片
   const dowloadAsCardImage = () => {
-    const el = document.querySelector(` #output-wrapper>.preview`)! as HTMLElement
+    const el = document.querySelector(`#output-wrapper>.preview`)! as HTMLElement
     toPng(el, {
       backgroundColor: isDark.value ? `` : `#fff`,
       skipFonts: true,
       pixelRatio: Math.max(window.devicePixelRatio || 1, 2),
+      style: {
+        margin: `0`,
+      },
     }).then((url) => {
       const a = document.createElement(`a`)
       a.download = sanitizeTitle(posts.value[currentPostIndex.value].title)
@@ -630,6 +698,8 @@ export const useStore = defineStore(`store`, () => {
     codeBlockTheme,
     legend,
     readingTime,
+    previewWidth,
+    previewWidthChanged,
 
     editorRefresh,
 
@@ -663,7 +733,9 @@ export const useStore = defineStore(`store`, () => {
     tabChanged,
     renameTab,
     posts,
+    currentPostId,
     currentPostIndex,
+    getPostById,
     addPost,
     renamePost,
     delPost,
@@ -671,12 +743,13 @@ export const useStore = defineStore(`store`, () => {
     isOpenRightSlider,
 
     titleList,
+    isMobile,
   }
 })
 
 export const useDisplayStore = defineStore(`display`, () => {
   // 是否展示 CSS 编辑器
-  const isShowCssEditor = ref(false)
+  const isShowCssEditor = useStorage(`isShowCssEditor`, false)
   const toggleShowCssEditor = useToggle(isShowCssEditor)
 
   // 是否展示插入表格对话框
@@ -687,6 +760,13 @@ export const useDisplayStore = defineStore(`display`, () => {
   const isShowUploadImgDialog = ref(false)
   const toggleShowUploadImgDialog = useToggle(isShowUploadImgDialog)
 
+  const aiDialogVisible = ref(false)
+
+  function toggleAIDialog(value?: boolean) {
+    console.log(`toggleAIDialog`, value)
+    aiDialogVisible.value = value ?? !aiDialogVisible.value
+  }
+
   return {
     isShowCssEditor,
     toggleShowCssEditor,
@@ -694,5 +774,43 @@ export const useDisplayStore = defineStore(`display`, () => {
     toggleShowInsertFormDialog,
     isShowUploadImgDialog,
     toggleShowUploadImgDialog,
+    aiDialogVisible,
+    toggleAIDialog,
   }
 })
+
+// 获取所有状态的方法
+export function getAllStoreStates() {
+  const store = useStore()
+  const displayStore = useDisplayStore()
+
+  return {
+    // 主 store 的状态
+    isDark: store.isDark,
+    isEditOnLeft: store.isEditOnLeft,
+    isMacCodeBlock: store.isMacCodeBlock,
+    isCiteStatus: store.isCiteStatus,
+    isCountStatus: store.isCountStatus,
+    isUseIndent: store.isUseIndent,
+    isOpenRightSlider: store.isOpenRightSlider,
+    isOpenPostSlider: store.isOpenPostSlider,
+    theme: store.theme,
+    fontFamily: store.fontFamily,
+    fontSize: store.fontSize,
+    primaryColor: store.primaryColor,
+    codeBlockTheme: store.codeBlockTheme,
+    legend: store.legend,
+    currentPostId: store.currentPostId,
+    currentPostIndex: store.currentPostIndex,
+    posts: store.posts,
+    cssContentConfig: store.cssContentConfig,
+    titleList: store.titleList,
+    readingTime: store.readingTime,
+
+    // displayStore 的状态
+    isShowCssEditor: displayStore.isShowCssEditor,
+    isShowInsertFormDialog: displayStore.isShowInsertFormDialog,
+    isShowUploadImgDialog: displayStore.isShowUploadImgDialog,
+    aiDialogVisible: displayStore.aiDialogVisible,
+  }
+}

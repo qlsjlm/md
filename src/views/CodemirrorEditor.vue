@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ComponentPublicInstance } from 'vue'
+import { AIPolishButton, AIPolishPopover, useAIPolish } from '@/components/AIPolish'
 import { altKey, altSign, ctrlKey, ctrlSign, shiftKey, shiftSign } from '@/config'
 import { useDisplayStore, useStore } from '@/stores'
 import {
@@ -36,24 +37,12 @@ const {
 const isImgLoading = ref(false)
 const timeout = ref<NodeJS.Timeout>()
 
-const isMobile = ref(false)
 const showEditor = ref(true)
 
-// 判断是否为移动端（初始 + resize 响应）
-function handleResize() {
-  isMobile.value = window.innerWidth <= 768
-}
-
 onMounted(() => {
-  handleResize()
-  window.addEventListener(`resize`, handleResize)
   setTimeout(() => {
     leftAndRightScroll()
   }, 300)
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener(`resize`, handleResize)
 })
 
 // 切换编辑/预览视图（仅限移动端）
@@ -61,11 +50,24 @@ function toggleView() {
   showEditor.value = !showEditor.value
 }
 
+const {
+  AIPolishBtnRef,
+  AIPolishPopoverRef,
+  selectedText,
+  position,
+  isDragging,
+  startDrag,
+  initPolishEvent,
+  recalcPos,
+} = useAIPolish()
+
 const preview = ref<HTMLDivElement | null>(null)
 
 // 使浏览区与编辑区滚动条建立同步联系
 function leftAndRightScroll() {
   const scrollCB = (text: string) => {
+    // AIPolishBtnRef.value?.close()
+
     let source: HTMLElement
     let target: HTMLElement
 
@@ -274,6 +276,8 @@ function initEditor() {
         }
       }
     })
+
+    initPolishEvent(editor.value)
     onEditorRefresh()
     mdLocalToRemote()
   })
@@ -414,16 +418,35 @@ const isOpenHeadingSlider = ref(false)
 <template>
   <div ref="container" class="container flex flex-col">
     <EditorHeader @add-format="addFormat" @format-content="formatContent" @start-copy="startCopy" @end-copy="endCopy" />
+    <AIPolishButton
+      ref="AIPolishBtnRef"
+      :position="position"
+      @click="AIPolishPopoverRef?.show"
+    />
+
+    <AIPolishPopover
+      ref="AIPolishPopoverRef"
+      :position="position"
+      :selected-text="selectedText"
+      :is-dragging="isDragging"
+      @close-btn="AIPolishBtnRef?.close"
+      @recalc-pos="recalcPos"
+      @start-drag="startDrag"
+    />
+
     <main class="container-main flex flex-1 flex-col">
       <div class="container-main-section border-radius-10 relative flex flex-1 overflow-hidden border-1">
         <PostSlider />
         <div
-          v-show="!isMobile || (isMobile && showEditor)" ref="codeMirrorWrapper" class="codeMirror-wrapper flex-1"
+          v-show="!store.isMobile || (store.isMobile && showEditor)"
+          ref="codeMirrorWrapper"
+          class="codeMirror-wrapper relative flex-1"
           :class="{
             'order-1 border-l': !store.isEditOnLeft,
             'border-r': store.isEditOnLeft,
           }"
         >
+          <AIFixedBtn :is-mobile="store.isMobile" :show-editor="showEditor" />
           <ContextMenu>
             <ContextMenuTrigger>
               <textarea id="editor" type="textarea" placeholder="Your markdown text here." />
@@ -471,13 +494,16 @@ const isOpenHeadingSlider = ref(false)
           </ContextMenu>
         </div>
         <div
-          v-show="!isMobile || (isMobile && !showEditor)" class="relative flex-1 transition-width"
+          v-show="!store.isMobile || (store.isMobile && !showEditor)" class="relative flex-1 overflow-x-hidden transition-width"
           :class="[store.isOpenRightSlider ? 'w-0' : 'w-100']"
         >
-          <div id="preview" ref="preview" class="preview-wrapper p-5">
-            <div id="output-wrapper" :class="{ output_night: !backLight }">
-              <div class="preview border-x-1 shadow-xl">
-                <section id="output" v-html="output" />
+          <div id="preview" ref="preview" class="preview-wrapper w-full p-5">
+            <div id="output-wrapper" class="w-full" :class="{ output_night: !backLight }">
+              <div
+                class="preview border-x-1 shadow-xl"
+                :class="[store.previewWidth]"
+              >
+                <section id="output" class="w-full" v-html="output" />
                 <div v-if="isCoping" class="loading-mask">
                   <div class="loading-mask-box">
                     <div class="loading__img" />
@@ -486,7 +512,7 @@ const isOpenHeadingSlider = ref(false)
                 </div>
               </div>
             </div>
-            <BackTop target="preview" :right="isMobile ? 24 : 20" :bottom="isMobile ? 90 : 20" />
+            <BackTop target="preview" :right="store.isMobile ? 24 : 20" :bottom="store.isMobile ? 90 : 20" />
           </div>
           <div
             class="bg-background absolute left-0 top-0 border rounded-2 rounded-lt-none p-2 text-sm shadow"
@@ -519,7 +545,7 @@ const isOpenHeadingSlider = ref(false)
       </footer>
 
       <button
-        v-if="isMobile"
+        v-if="store.isMobile"
         class="bg-primary fixed bottom-16 right-6 z-50 flex items-center justify-center rounded-full p-3 text-white shadow-lg transition active:scale-95 hover:scale-105 dark:bg-gray-700 dark:text-white dark:ring-2 dark:ring-white/30"
         aria-label="切换编辑/预览" @click="toggleView"
       >
