@@ -442,6 +442,129 @@ async function upyunUpload(file: File) {
 }
 
 // -----------------------------------------------------------------------
+// Telegram File Upload
+// -----------------------------------------------------------------------
+async function telegramUpload(file: File): Promise<string> {
+  const { token, chatId } = JSON.parse(localStorage.getItem(`telegramConfig`)!)
+
+  // 1. sendPhoto
+  const form = new FormData()
+  form.append(`chat_id`, chatId)
+  form.append(`photo`, file, file.name)
+
+  const sendRes = await fetch<any, {
+    ok: boolean
+    result: {
+      photo: { file_id: string }[]
+    }
+  }>({
+    url: `https://api.telegram.org/bot${token}/sendPhoto`,
+    method: `POST`,
+    data: form,
+  })
+
+  if (!sendRes.ok || !sendRes.result.photo.length) {
+    throw new Error(`Telegram sendPhoto 失败`)
+  }
+  // 取最大的分辨率那张图
+  const fileId = sendRes.result.photo[sendRes.result.photo.length - 1].file_id
+
+  // 2. getFile
+  const fileRes = await fetch<any, {
+    ok: boolean
+    result: { file_path: string }
+  }>({
+    url: `https://api.telegram.org/bot${token}/getFile?file_id=${fileId}`,
+    method: `GET`,
+  })
+  if (!fileRes.ok) {
+    throw new Error(`Telegram getFile 失败`)
+  }
+
+  const filePath = fileRes.result.file_path
+  // 3. 拼出下载地址
+  return `https://api.telegram.org/file/bot${token}/${filePath}`
+}
+
+// -----------------------------------------------------------------------
+// Cloudinary File Upload
+// -----------------------------------------------------------------------
+
+/**
+ * localStorage 中 cloudinaryConfig 的示例：
+ * {
+ *   "cloudName": "demo",
+ *   "apiKey": "1234567890",
+ *   "apiSecret": "abcdefg1234567890",     // 可选：若未填写则走 unsigned preset
+ *   "uploadPreset": "unsigned_preset",     // 可选：有 apiSecret 时可省略
+ *   "folder": "blog/image",                // 可选：Cloudinary 目录，留空则根路径
+ *   "domain": "https://cdn.example.com"    // 可选：自定义访问域名 / CDN 域名
+ * }
+ */
+async function cloudinaryUpload(file: File): Promise<string> {
+  const {
+    cloudName,
+    apiKey,
+    apiSecret,
+    uploadPreset,
+    folder = ``,
+    domain,
+  } = JSON.parse(localStorage.getItem(`cloudinaryConfig`)!)
+
+  if (!cloudName || !apiKey)
+    throw new Error(`Cloudinary 配置缺少 cloudName / apiKey`)
+
+  const timestamp = Math.floor(Date.now() / 1000) // Cloudinary 要求秒级时间戳
+  const formData = new FormData()
+  formData.append(`file`, file)
+  formData.append(`api_key`, apiKey)
+  formData.append(`timestamp`, `${timestamp}`)
+
+  // ---------- 1) 需要签名的场景 ----------
+  if (apiSecret) {
+    // 参与签名的字段需按字典序排列并拼接成 a=b&c=d… 的格式
+    const params: string[] = []
+    if (folder)
+      params.push(`folder=${folder}`)
+    if (uploadPreset)
+      params.push(`upload_preset=${uploadPreset}`)
+    params.push(`timestamp=${timestamp}`)
+
+    const signatureBase = params.sort().join(`&`)
+    const signature = CryptoJS.SHA1(signatureBase + apiSecret).toString()
+    formData.append(`signature`, signature)
+  }
+  // ---------- 2) unsigned preset ----------
+  else if (uploadPreset) {
+    formData.append(`upload_preset`, uploadPreset)
+  }
+  else {
+    throw new Error(`未配置 apiSecret 时必须提供 uploadPreset`)
+  }
+
+  if (folder)
+    formData.append(`folder`, folder)
+
+  const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`
+  const res = await fetch<any, { secure_url?: string, url?: string }>(uploadUrl, {
+    method: `POST`,
+    data: formData,
+  })
+
+  const originUrl = res.secure_url || res.url
+  if (!originUrl)
+    throw new Error(`Cloudinary 返回缺少 url 字段`)
+
+  // 如果配置了自定义域名，则把 host 换掉
+  if (domain) {
+    const { pathname, search } = new URL(originUrl)
+    return `${domain}${pathname}${search}`
+  }
+
+  return originUrl
+}
+
+// -----------------------------------------------------------------------
 // formCustom File Upload
 // -----------------------------------------------------------------------
 
@@ -502,6 +625,10 @@ function fileUpload(content: string, file: File) {
       return r2Upload(file)
     case `upyun`:
       return upyunUpload(file)
+    case `telegram`:
+      return telegramUpload(file)
+    case `cloudinary`:
+      return cloudinaryUpload(file)
     case `formCustom`:
       return formCustomUpload(content, file)
     default:

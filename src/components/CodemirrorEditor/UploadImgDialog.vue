@@ -137,6 +137,24 @@ function minioOSSSubmit(formValues: any) {
   toast.success(`保存成功`)
 }
 
+// Telegram 图床
+const telegramSchema = toTypedSchema(
+  yup.object({
+    token: yup.string().required(`Bot Token 不能为空`),
+    chatId: yup.string().required(`Chat ID 不能为空`),
+  }),
+)
+const telegramConfig = ref(
+  localStorage.getItem(`telegramConfig`)
+    ? JSON.parse(localStorage.getItem(`telegramConfig`)!)
+    : { token: ``, chatId: `` },
+)
+function telegramSubmit(values: any) {
+  localStorage.setItem(`telegramConfig`, JSON.stringify(values))
+  telegramConfig.value = values
+  toast.success(`保存成功`)
+}
+
 // 公众号
 // 当前是否为网页（http/https 协议）
 const isWebsite = window.location.protocol.startsWith(`http`)
@@ -236,6 +254,41 @@ function upyunSubmit(formValues: any) {
   toast.success(`保存成功`)
 }
 
+// Cloudinary
+const cloudinarySchema = toTypedSchema(
+  yup.object({
+    cloudName: yup.string().required(`Cloud Name 不能为空`),
+    apiKey: yup.string().required(`API Key 不能为空`),
+    apiSecret: yup.string().optional(),
+    uploadPreset: yup.string().when(`apiSecret`, {
+      is: (v: string | undefined) => !v || v.length === 0,
+      then: s => s.required(`未填写 apiSecret 时必须提供上传预设名`),
+      otherwise: s => s.optional(),
+    }),
+    folder: yup.string().optional(),
+    domain: yup.string().optional(),
+  }),
+)
+
+const cloudinaryConfig = ref(
+  localStorage.getItem(`cloudinaryConfig`)
+    ? JSON.parse(localStorage.getItem(`cloudinaryConfig`)!)
+    : {
+        cloudName: ``,
+        apiKey: ``,
+        apiSecret: ``,
+        uploadPreset: ``,
+        folder: ``,
+        domain: ``,
+      },
+)
+
+function cloudinarySubmit(formValues: any) {
+  localStorage.setItem(`cloudinaryConfig`, JSON.stringify(formValues))
+  cloudinaryConfig.value = formValues
+  toast.success(`保存成功`)
+}
+
 const options = [
   {
     value: `default`,
@@ -273,6 +326,12 @@ const options = [
     value: `upyun`,
     label: `又拍云`,
   },
+  { value: `telegram`, label: `Telegram` },
+  {
+    value: `cloudinary`,
+    label: `Cloudinary`,
+  },
+
   {
     value: `formCustom`,
     label: `自定义代码`,
@@ -962,6 +1021,116 @@ function onDrop(e: DragEvent) {
                 target="_blank"
               >
                 如何使用 又拍云？
+              </Button>
+            </FormItem>
+
+            <FormItem>
+              <Button type="submit">
+                保存配置
+              </Button>
+            </FormItem>
+          </Form>
+        </TabsContent>
+
+        <TabsContent value="telegram">
+          <Form :validation-schema="telegramSchema" :initial-values="telegramConfig" @submit="telegramSubmit">
+            <Field v-slot="{ field, errorMessage }" name="token">
+              <FormItem label="Bot Token" required :error="errorMessage">
+                <Input v-bind="field" v-model="field.value" placeholder="如：123456789:ABCdefGHIjkl-MNOPqrSTUvwxYZ" />
+              </FormItem>
+            </Field>
+            <Field v-slot="{ field, errorMessage }" name="chatId">
+              <FormItem label="Chat ID" required :error="errorMessage">
+                <Input v-bind="field" v-model="field.value" placeholder="如：-1001234567890" />
+              </FormItem>
+            </Field>
+            <FormItem>
+              <Button
+                variant="link"
+                class="p-0"
+                as="a"
+                href="https://github.com/doocs/md/blob/main/docs/telegram-usage.md"
+                target="_blank"
+              >
+                如何使用 Telegram？
+              </Button>
+            </FormItem>
+            <FormItem>
+              <Button type="submit">
+                保存配置
+              </Button>
+            </FormItem>
+          </Form>
+        </TabsContent>
+
+        <TabsContent value="cloudinary">
+          <Form
+            :validation-schema="cloudinarySchema"
+            :initial-values="cloudinaryConfig"
+            @submit="cloudinarySubmit"
+          >
+            <Field v-slot="{ field, errorMessage }" name="cloudName">
+              <FormItem label="Cloud Name" required :error="errorMessage">
+                <Input v-bind="field" v-model="field.value" placeholder="如：demo" />
+              </FormItem>
+            </Field>
+
+            <Field v-slot="{ field, errorMessage }" name="apiKey">
+              <FormItem label="API Key" required :error="errorMessage">
+                <Input v-bind="field" v-model="field.value" placeholder="如：1234567890" />
+              </FormItem>
+            </Field>
+
+            <Field v-slot="{ field, errorMessage }" name="apiSecret">
+              <FormItem label="API Secret" :error="errorMessage">
+                <Input
+                  v-bind="field"
+                  v-model="field.value"
+                  type="password"
+                  placeholder="用于签名上传，可不填"
+                />
+              </FormItem>
+            </Field>
+
+            <Field v-slot="{ field, errorMessage }" name="uploadPreset">
+              <FormItem label="Upload Preset" :error="errorMessage">
+                <Input
+                  v-bind="field"
+                  v-model="field.value"
+                  placeholder="unsigned 时必填，signed 时可不填"
+                />
+              </FormItem>
+            </Field>
+
+            <Field v-slot="{ field, errorMessage }" name="folder">
+              <FormItem label="Folder" :error="errorMessage">
+                <Input
+                  v-bind="field"
+                  v-model="field.value"
+                  placeholder="如：blog/image，可不填"
+                />
+              </FormItem>
+            </Field>
+
+            <Field v-slot="{ field, errorMessage }" name="domain">
+              <FormItem label="自定义域名 / CDN" :error="errorMessage">
+                <Input
+                  v-bind="field"
+                  v-model="field.value"
+                  placeholder="如：https://cdn.example.com，可不填"
+                />
+              </FormItem>
+            </Field>
+
+            <FormItem>
+              <Button
+                variant="link"
+                class="p-0"
+                as="a"
+                href="https://cloudinary.com/documentation/upload_images"
+                target="_blank"
+              >
+                Cloudinary 使用文档
               </Button>
             </FormItem>
 

@@ -8,6 +8,7 @@ import {
   formatDoc,
   toBase64,
 } from '@/utils'
+import { toggleFormat } from '@/utils/editor'
 import fileApi from '@/utils/file'
 import CodeMirror from 'codemirror'
 import { Eye, List, Pen } from 'lucide-vue-next'
@@ -32,6 +33,7 @@ const {
 
 const {
   toggleShowInsertFormDialog,
+  toggleShowInsertMpCardDialog,
   toggleShowUploadImgDialog,
 } = displayStore
 
@@ -214,34 +216,78 @@ function initEditor() {
       autoCloseBrackets: true,
       extraKeys: {
         [`${shiftKey}-${altKey}-F`]: function autoFormat(editor) {
-          formatDoc(editor.getValue()).then((doc) => {
+          const value = editor.getValue()
+          formatDoc(value).then((doc: string) => {
             editor.setValue(doc)
           })
         },
+
         [`${ctrlKey}-B`]: function bold(editor) {
-          const selected = editor.getSelection()
-          editor.replaceSelection(`**${selected}**`)
+          toggleFormat(editor, {
+            prefix: `**`,
+            suffix: `**`,
+            check: s => s.startsWith(`**`) && s.endsWith(`**`),
+          })
         },
+
         [`${ctrlKey}-I`]: function italic(editor) {
-          const selected = editor.getSelection()
-          editor.replaceSelection(`*${selected}*`)
+          toggleFormat(editor, {
+            prefix: `*`,
+            suffix: `*`,
+            check: s => s.startsWith(`*`) && s.endsWith(`*`),
+          })
         },
+
         [`${ctrlKey}-D`]: function del(editor) {
-          const selected = editor.getSelection()
-          editor.replaceSelection(`~~${selected}~~`)
+          toggleFormat(editor, {
+            prefix: `~~`,
+            suffix: `~~`,
+            check: s => s.startsWith(`~~`) && s.endsWith(`~~`),
+          })
         },
-        [`${ctrlKey}-K`]: function italic(editor) {
-          const selected = editor.getSelection()
-          editor.replaceSelection(`[${selected}]()`)
+
+        [`${ctrlKey}-K`]: function link(editor) {
+          toggleFormat(editor, {
+            prefix: `[`,
+            suffix: `]()`,
+            check: s => s.startsWith(`[`) && s.endsWith(`]()`),
+            afterInsertCursorOffset: -1,
+          })
         },
+
         [`${ctrlKey}-E`]: function code(editor) {
-          const selected = editor.getSelection()
-          editor.replaceSelection(`\`${selected}\``)
+          toggleFormat(editor, {
+            prefix: `\``,
+            suffix: `\``,
+            check: s => s.startsWith(`\``) && s.endsWith(`\``),
+          })
         },
-        // 预备弃用
-        [`${ctrlKey}-L`]: function code(editor) {
+
+        // 标题：单行逻辑，手动处理
+        [`${ctrlKey}-H`]: function heading(editor) {
           const selected = editor.getSelection()
-          editor.replaceSelection(`\`${selected}\``)
+          const replaced = selected.startsWith(`# `) ? selected.slice(2) : `# ${selected}`
+          editor.replaceSelection(replaced)
+        },
+
+        [`${ctrlKey}-U`]: function unorderedList(editor) {
+          const selected = editor.getSelection()
+          const lines = selected.split(`\n`)
+          const isList = lines.every(line => line.trim().startsWith(`- `))
+          const updated = isList
+            ? lines.map(line => line.replace(/^- +/, ``)).join(`\n`)
+            : lines.map(line => `- ${line}`).join(`\n`)
+          editor.replaceSelection(updated)
+        },
+
+        [`${ctrlKey}-O`]: function orderedList(editor) {
+          const selected = editor.getSelection()
+          const lines = selected.split(`\n`)
+          const isList = lines.every(line => /^\d+\.\s/.test(line.trim()))
+          const updated = isList
+            ? lines.map(line => line.replace(/^\d+\.\s+/, ``)).join(`\n`)
+            : lines.map((line, i) => `${i + 1}. ${line}`).join(`\n`)
+          editor.replaceSelection(updated)
         },
       },
     })
@@ -462,6 +508,9 @@ const isOpenHeadingSlider = ref(false)
               <ContextMenuItem inset @click="toggleShowInsertFormDialog()">
                 插入表格
               </ContextMenuItem>
+              <ContextMenuItem inset @click="toggleShowInsertMpCardDialog()">
+                插入公众号名片
+              </ContextMenuItem>
               <ContextMenuItem inset @click="resetStyleConfirm()">
                 重置样式
               </ContextMenuItem>
@@ -562,6 +611,8 @@ const isOpenHeadingSlider = ref(false)
       <UploadImgDialog @upload-image="uploadImage" />
 
       <InsertFormDialog />
+
+      <InsertMpCardDialog />
 
       <RunLoading />
 
