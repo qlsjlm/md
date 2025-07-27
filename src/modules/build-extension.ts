@@ -37,9 +37,6 @@ export default defineWxtModule({
       if (config.build?.rollupOptions?.input && config.build?.rollupOptions?.output) {
         const input = config.build?.rollupOptions.input as Record<string, string>
         const wxtOutput = config.build?.rollupOptions.output as OutputOptions
-        wxtOutput.chunkFileNames = `chunks/[name].js`
-        wxtOutput.entryFileNames = `chunks/[name].js`
-        wxtOutput.assetFileNames = `assets/[name].[ext]`
         if (input.options || input.sidepanel) {
           wxtOutput.manualChunks = (id) => {
             if (id.includes(`node_modules`)) {
@@ -55,9 +52,6 @@ export default defineWxtModule({
                 return `hljs`
             }
           }
-        }
-        if (input.background) {
-          wxtOutput.entryFileNames = `[name].js`
         }
       }
     })

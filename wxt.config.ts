@@ -47,6 +47,17 @@ export default defineConfig({
       },
     },
   }),
+  zip: {
+    excludeSources: [
+      `dist/**`,
+      `docker/**`,
+      `docs/**`,
+      `example/**`,
+      `functions/**`,
+      `md-cli/**`,
+      `scripts/**`,
+    ],
+  },
   analysis: {
     open: true,
   },
@@ -57,6 +68,7 @@ export default defineConfig({
       && plugin !== null
       && !(`name` in plugin && plugin.name === `vite-plugin-Radar`),
     ),
+    define: undefined,
     build: undefined,
     base: `/`,
   }),
