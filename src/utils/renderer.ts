@@ -16,6 +16,7 @@ import markedAlert from './MDAlert'
 import markedFootnotes from './MDFootnotes'
 import { MDKatex } from './MDKatex'
 import markedSlider from './MDSlider'
+import { markedToc } from './MDToc'
 
 marked.setOptions({
   breaks: true,
@@ -323,7 +324,7 @@ export function initRenderer(opts: IOpts): RendererAPI {
 
     link({ href, title, text, tokens }: Tokens.Link): string {
       const parsedText = this.parser.parseInline(tokens)
-      if (href.startsWith(`https://mp.weixin.qq.com`)) {
+      if (/^https?:\/\/mp\.weixin\.qq\.com/.test(href)) {
         return `<a href="${href}" title="${title || text}" ${styles(`wx_link`)}>${parsedText}</a>`
       }
       if (href === text) {
@@ -377,6 +378,7 @@ export function initRenderer(opts: IOpts): RendererAPI {
   }
 
   marked.use({ renderer })
+  marked.use(markedToc())
   marked.use(markedSlider({ styles: styleMapping }))
   marked.use(markedAlert({ styles: styleMapping }))
   marked.use(
