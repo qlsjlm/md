@@ -19,6 +19,7 @@ import {
   exportPDF,
   exportPureHTML,
   formatDoc,
+  processHtmlContent,
   sanitizeTitle,
 } from '@/utils'
 import { css2json, customCssWithTemplate, customizeTheme, postProcessHtml, renderMarkdown } from '@/utils/'
@@ -230,8 +231,9 @@ export const useStore = defineStore(`store`, () => {
    ********************************/
   watch(currentPostId, () => {
     const post = getPostById(currentPostId.value)
-    if (post)
-      toRaw(editor.value!).setValue(post.content)
+    if (post) {
+      editor.value && toRaw(editor.value).setValue(post.content)
+    }
   })
 
   onMounted(() => {
@@ -578,6 +580,12 @@ export const useStore = defineStore(`store`, () => {
     toggleAIToolbox()
   })
 
+  const editorContent2HTML = () => {
+    const temp = processHtmlContent(primaryColor.value)
+    document.querySelector(`#output`)!.innerHTML = output.value
+    return temp
+  }
+
   // 导出编辑器内容为 HTML，并且下载到本地
   const exportEditorContent2HTML = () => {
     exportHTML(primaryColor.value, posts.value[currentPostIndex.value].title)
@@ -746,6 +754,8 @@ export const useStore = defineStore(`store`, () => {
     updatePostParentId,
     collapseAllPosts,
     expandAllPosts,
+
+    editorContent2HTML,
   }
 })
 
